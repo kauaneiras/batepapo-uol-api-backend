@@ -5,33 +5,30 @@ import dotenv from 'dotenv';
 import joi from 'joi';
 import dayjs from 'dayjs';
 
-
+// Load environment variables
 const app = express();
-
 app.use(express.json());
 app.use(cors());
-
 dotenv.config();
+
+// Mongo connection
 const mongoClient = new MongoClient(process.env.MONGO_URL);
 let mongoData = null;
 mongoClient.connect().then(() => {
     mongoData = mongoClient.db('batepapo');
 });
 
-// /// /data validation
-// // //{name: 'João', lastStatus: 12313123} // O conteúdo do lastStatus será explicado nos próximos requisitos
- const schemaName = joi.object({name: joi.string().min(2).max(30).required(),});
-
- const schemaMessage = joi.object({
+// Data validation with Joi
+const schemaName = joi.object({name: joi.string().min(2).max(30).required(),});
+const schemaMessage = joi.object({
     from: joi.string().min(1).max(30).required(),
     to: joi.string().min(1).max(30).required(),
     text: joi.string().min(1).max(1000).required(),
     type: joi.string().valid("message", "private_message").required(),
     time: joi.string(),
-  });
+});
 
-
-//POST /participants
+//POST/participants
 app.post("/participants", async (req, res )=>{
     const {name} = req.body;
     const validation = schemaName.validate({name});
@@ -62,6 +59,7 @@ app.post("/participants", async (req, res )=>{
 
 });
 
+//GET/participants
 app.get("/participants", async (req, res) =>{
     try{
         const participants = await mongoData.collection("participants").find().toArray();
@@ -70,6 +68,30 @@ app.get("/participants", async (req, res) =>{
         res.status(500).send("Erro no servidor: ", err);
     }
 });
+
+//POST/messages
+app.post("/messages", async (req, res) =>{
+    // Must receive by Body {to: "Maria", text: "oi sumida rs", type: "private_message"}
+    // "From" must to be sending by Header, with User
+    // if some error, return status 422 
+    const {to, text, type} = req.body;
+    const {user} = req.headers;
+    const validation = schemaMessage.validate({from: user, to, text, type});
+    if (validation.error){
+        res.status(422).send("Mensagem inválida");
+        return;
+    }
+
+    try{
+        let message = {from: user, to, text, type, time: dayjs().format('HH:mm:ss')};
+        await mongoData.collection("messages").insertOne(message);
+        res.status(201).send("OK");
+    }catch{
+        res.send("Erro no servidor");
+    }
+});
+
+ 
 
 app.listen(5000, () => {console.log("Server is running on port 5000")});
 
