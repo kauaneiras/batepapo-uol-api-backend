@@ -90,10 +90,6 @@ app.post("/messages", async (req, res) =>{
 
 //GET/messages
 app.get("/messages", async (req, res) =>{
-    // 1 --> receber as mensagens
-    // 2 --> recebe um limite para as menságens pelo Query Params
-    // 3 --> Se não tiver limite, vai retornar todas as mensagens
-    // 4 --> Usuário só pode ver mensagens publicas ou destidas a ele
 
     const {user} = req.headers;
     const limit = req.query.limit;
@@ -111,8 +107,19 @@ app.get("/messages", async (req, res) =>{
         res.send("Erro no servidor: ", err);
     }
 });
- 
 
+//POST/status
+app.post("/status", async (req, res) =>{
+    const {user} = req.headers;
+    try{
+        await mongoData.collection("participants").updateOne({name: user
+        }, {$set: {lastStatus: Date.now()}});
+        res.status(200).send("OK");
+    }catch(err){
+        res.status(404).send("Erro no servidor: ", err);
+    }
+});
+ 
 app.listen(5000, () => {console.log("Server is running on port 5000")});
 
 
