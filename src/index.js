@@ -50,7 +50,7 @@ app.post("/participants", async (req, res )=>{
 
     try{ //try insert participant in mongoDB if it doesn't exist;
         if (await mongoData.collection("participants").findOne({name: name})){
-            res.status(200).send("Já existe um usuário com esse nome");
+            res.status(409).send("Já existe um usuário com esse nome");
             return;
         }
         await mongoData.collection("participants").insertOne(participant);
@@ -62,6 +62,14 @@ app.post("/participants", async (req, res )=>{
 
 });
 
+app.get("/participants", async (req, res) =>{
+    try{
+        const participants = await mongoData.collection("participants").find().toArray();
+        res.status(200).send(participants);
+    }catch(err){
+        res.status(500).send("Erro no servidor: ", err);
+    }
+});
 
 app.listen(5000, () => {console.log("Server is running on port 5000")});
 
