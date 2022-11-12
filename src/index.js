@@ -71,9 +71,6 @@ app.get("/participants", async (req, res) =>{
 
 //POST/messages
 app.post("/messages", async (req, res) =>{
-    // Must receive by Body {to: "Maria", text: "oi sumida rs", type: "private_message"}
-    // "From" must to be sending by Header, with User
-    // if some error, return status 422 
     const {to, text, type} = req.body;
     const {user} = req.headers;
     const validation = schemaMessage.validate({from: user, to, text, type});
@@ -85,12 +82,21 @@ app.post("/messages", async (req, res) =>{
     try{
         let message = {from: user, to, text, type, time: dayjs().format('HH:mm:ss')};
         await mongoData.collection("messages").insertOne(message);
-        res.status(201).send("OK");
+        res.status(201).send(201);
     }catch{
         res.send("Erro no servidor");
     }
 });
 
+//GET/messages
+app.get("/messages", async (req, res) =>{
+    try{
+        const messages = await mongoData.collection("messages").find().toArray();
+        res.status(200).send(messages);
+    }catch(err){
+        res.send("Erro no servidor: ", err);
+    }
+});
  
 
 app.listen(5000, () => {console.log("Server is running on port 5000")});
