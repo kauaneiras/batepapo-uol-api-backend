@@ -90,9 +90,23 @@ app.post("/messages", async (req, res) =>{
 
 //GET/messages
 app.get("/messages", async (req, res) =>{
+    // 1 --> receber as mensagens
+    // 2 --> recebe um limite para as menságens pelo Query Params
+    // 3 --> Se não tiver limite, vai retornar todas as mensagens
+    // 4 --> Usuário só pode ver mensagens publicas ou destidas a ele
+
+    const {user} = req.headers;
+    const limit = req.query.limit;
+
     try{
         const messages = await mongoData.collection("messages").find().toArray();
-        res.status(200).send(messages);
+        const visibleMessages = messages.filter(message => message.type === 'message' || message.to === "Todos" || message.to === user || message.from === user);
+        if (limit === undefined){
+            let size = visibleMessages.length;
+            res.status(200).send(visibleMessages.reverse().slice(0, size))}
+        else{
+            res.status(200).send(visibleMessages.reverse().slice(0, limit));
+        }
     }catch(err){
         res.send("Erro no servidor: ", err);
     }
