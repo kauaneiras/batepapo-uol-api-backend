@@ -3,6 +3,7 @@ import cors from 'cors';
 import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 import joi from 'joi';
+import dayjs from 'dayjs';
 
 
 const app = express();
@@ -27,13 +28,32 @@ const schemaMessage = joi.object({
 });
 
 //POST /participants
-app.post("/participants", (req, req )=>{
+app.post("/participants", async (req, req )=>{
     const {name} = req.body;
     const validation = schemaName.validate({name});
 
     if(validation.error){
         res.status(422).send("nome inválido");
         return;
+    }
+    //{name: 'xxx', lastStatus: Date.now()}
+    let participant = {name: name, lastStatus: Date.now()};
+    // Date.now() gera um timestamp, que é o número de milissegundos passados desde 01/01/1970 00:00:00 até o exato momento.
+
+    //Object Message:
+    //{from: 'xxx', to: 'Todos', text: 'entra na sala...', type: 'status', time: 'HH:MM:SS'}
+    let message = {from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: dayjs().format('HH:mm:ss')};
+
+    try{ //try insert participant in mongoDB if it doesn't exist;
+        if (await mongoData.collection("participants").findOne({name: name})){
+            res.status(200).send("Já existe um usuário com esse nome");
+            return;
+        }
+        await mongoData.collection("participants").insertOne(participant);
+        await mongoData.collection("messages").insertOne(message);
+        res.status(201).send("OK");
+    }catch(err){
+        res.status(500).send("Erro no servidor");
     }
 
 });
