@@ -120,6 +120,24 @@ app.post("/status", async (req, res) =>{
     }
 });
  
-app.listen(5000, () => {console.log("Server is running on port 5000")});
+//Delete inatives participants
+setInterval(async () => {
+    try{
+        const participants = await mongoData.collection("participants").find().toArray();
+        for( const participant of participants){
+            if (Date.now() - participant.lastStatus > 10000){
+                await mongoData.collection("participants").deleteOne({name: participant.name});
+                let message = {from: participant.name, to: 'Todos', text: 'sai da sala...', type: 'status', time: dayjs().format('HH:mm:ss')};
+                await mongoData.collection("messages").insertOne(message);
+            }
+        }
+    }catch{
+        console.log("Erro no servidor");
+    }
 
+}, 15000);
+
+
+
+app.listen(5000, () => {console.log("Server is running on port 5000")});
 
